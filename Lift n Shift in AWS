@@ -1,0 +1,174 @@
+# “Lift and shift,” also known as “rehosting”:
+- Migrating an exact copy of an application or workload together with its data store and operating system (OS), from on-premise to the public or private cloud.
+
+# Lift and shift migration assessment and planning:
+
+Before undertaking lift and shift migration, you need to assess and prepare for factors that can impact the difficulty, cost, and ultimate value of the undertaking. These can include, but are not limited to the following:
+- Application lifespan: How much longer will you continue to use this application or run this workload? In most cases, it doesn’t make sense to migrate an application you’ll be retiring within the next 12 months.
+- Feature and scope creep: Feature-rich cloud environments can easily tempt you to integrate capabilities on the fly, leading to delays and resource drains. Have a clearly defined project and stick to it throughout the migration.
+- API access restrictions: Make sure your move to the cloud won't result in bottlenecks for your current API tools.
+- Migration automation tools: Identify whether your cloud hosting provider offers any automated tools for migrations and plan to use them whenever possible.
+- Migration priority: If you’re planning to migrate multiple applications, create a runbook to ensure that mission-critical applications are migrated first (or whatever order that makes the most sense for your business).
+- Compliance: Before migrating from your private, on-premises environment to a private or public cloud, evaluate your migration plan and the cloud provider’s infrastructure to ensure all compliance requirements will be met during and after the migration.
+
+==============================================================================
+
+# Migrate a Server from On-Prem to the AWS Cloud
+
+==============================================================================
+
+1. Create a vmdk/OVA file from VM Server.
+
+2. Upload it to S3 Bucket with appropiation Permissions
+
+- Attach an access control list (ACL) to your S3 bucket containing the following grants. 
+
+- You can't export a VM to an S3 bucket that uses the bucket owner enforced setting for S3 Object Ownership because ACLs are disabled. 
+
+- For Guarantee, provide the appropriate Region-specific canonical account ID:
+
+
+    Africa (Cape Town) : 3f7744aeebaf91dd60ab135eb1cf908700c8d2bc9133e61261e6c582be6e33ee
+
+    Asia Pacific (Hong Kong):97ee7ab57cc9b5034f31e107741a968e595c0d7a19ec23330eae8d045a46edfb
+
+    Asia Pacific (Jakarta):de34aaa6b2875fa3d5086459cb4e03147cf1a9f7d03d82f02bedb991ff3d1df5
+
+    Asia Pacific (Osaka):40f22ffd22d6db3b71544ed6cd00c8952d8b0a63a87d58d5b074ec60397db8c9
+
+    Europe (Milan):04636d9a349e458b0c1cbf1421858b9788b4ec28b066148d4907bb15c52b5b9c
+
+    Middle East (Bahrain):aa763f2cf70006650562c62a09433f04353db3cba6ba6aeb3550fdc8065d3d9f
+
+    China (Beijing) and China (Ningxia):834bafd86b15b6ca71074df0fd1f93d234b9d5e848a2cb31f880c149003ce36f
+
+    AWS GovCloud (US):af913ca13efe7a94b88392711f6cfc8aa07c9d1454d4f190a624b126733a5602
+
+    All other Regions:c4d8eabf8db69dbe46bfe0e517100c554f01200b104d59cd408e777ba442a322
+
+
+    READ_ACL permission
+
+    WRITE permission
+
+
+3. Create a File "containers.json"
+
+[
+
+  {
+
+    "Description": "My Server OVA",
+
+    "Format": "vmdk",
+
+    "UserBucket": {
+
+        "S3Bucket": "itusrc",
+
+        "S3Key": "Ubuntu_64-bit_18.04-disk1.vmdk"
+
+    }
+
+  }
+
+]
+
+
+
+4. Create a IAM role Add the following policy to the file:
+
+IAM->ROLE->Trust Policy
+
+{
+
+   "Version": "2012-10-17",
+
+   "Statement": [
+
+      {
+
+         "Effect": "Allow",
+
+         "Principal": { "Service": "vmie.amazonaws.com" },
+
+         "Action": "sts:AssumeRole",
+
+         "Condition": {
+
+            "StringEquals":{
+
+               "sts:Externalid": "vmimport"
+
+            }
+
+         }
+
+      }
+
+   ]
+
+}
+
+Add Permissions
+
+  (a) AWSImportExportFullAccess
+
+  (b) VMImportExportRoleForAWSConnector
+
+  (c) S3FullAccess
+
+
+5. From Cli issue the following command
+
+aws ec2 import-image --description "My Ubuntu Server " --disk-containers "file://f:\aws\containers.json" --role vmimport
+
+
+aws ec2 import-image --description "My server VM" --disk-containers "file://f:\aws\containers.json" --role vmimport
+
+
+6. aws ec2 describe-import-image-tasks --import-task-ids import-ami-073ad2c933478da4c
+
+============================================================================================
+
+# Migrate an AWS EC2 Instance to the On-prem 
+
+============================================================================================
+
+
+## Step 1 : Create an Amazon S3 bucket for storing the exported instances or choose an existing bucket. The bucket "must be in the Region" where you want to export your VMs
+
+## Step 2 : Attach an access control list (ACL) to your S3 bucket containing the following access:
+
+ - You can't export a VM to an S3 bucket that uses the bucket owner enforced setting for S3 Object Ownership because ACLs are disabled. 
+ - For Grantee, provide the appropriate Region-specific canonical account ID:
+
+
+    Africa (Cape Town) : 3f7744aeebaf91dd60ab135eb1cf908700c8d2bc9133e61261e6c582be6e33ee
+
+    Asia Pacific (Hong Kong):97ee7ab57cc9b5034f31e107741a968e595c0d7a19ec23330eae8d045a46edfb
+
+    Asia Pacific (Jakarta):de34aaa6b2875fa3d5086459cb4e03147cf1a9f7d03d82f02bedb991ff3d1df5
+
+    Asia Pacific (Osaka):40f22ffd22d6db3b71544ed6cd00c8952d8b0a63a87d58d5b074ec60397db8c9
+
+    Europe (Milan):04636d9a349e458b0c1cbf1421858b9788b4ec28b066148d4907bb15c52b5b9c
+
+    Middle East (Bahrain):aa763f2cf70006650562c62a09433f04353db3cba6ba6aeb3550fdc8065d3d9f
+
+    China (Beijing) and China (Ningxia):834bafd86b15b6ca71074df0fd1f93d234b9d5e848a2cb31f880c149003ce36f
+
+    AWS GovCloud (US):af913ca13efe7a94b88392711f6cfc8aa07c9d1454d4f190a624b126733a5602
+
+    All other Regions:c4d8eabf8db69dbe46bfe0e517100c554f01200b104d59cd408e777ba442a322
+
+
+    READ_ACL permission
+
+    WRITE permission
+
+## STEP 3: Execute these commands
+- aws ec2 export-image --image-id ami-06ae0e97bcb590356 --disk-image-format VMDK --s3-export-location S3Bucket=nisbuc12,S3Prefix=exports/
+- aws ec2 describe-export-image-tasks --export-image-task-id export-ami-06ae0e97bcb59jkl6
+
+
